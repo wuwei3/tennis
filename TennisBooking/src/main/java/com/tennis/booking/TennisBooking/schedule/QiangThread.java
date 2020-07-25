@@ -254,7 +254,7 @@ public class QiangThread extends Thread{
 		String zhouji = DateUtil.getWeekZhCN(d);
 		
 		if ("13397".equals(userid)) {
-			//sendRegisterVrifyCode("17710871133", "辛教练"+content, success);
+			sendRegisterVrifyCode("17710871133", "辛教练"+content, success);
 	        if ("Wed".equals(zhouji)) {
 				sendRegisterVrifyCode("13810010934", "娜娜"+content, success);
 				sendRegisterVrifyCode("13718656535", "伟伟"+content, success);
@@ -262,11 +262,11 @@ public class QiangThread extends Thread{
 		}
 		
 		if ("15837".equals(userid)) {
-			//sendRegisterVrifyCode("15321336833", "陶教练"+content, success);
+			sendRegisterVrifyCode("15321336833", "陶教练"+content, success);
 		}
 		
-		//sendRegisterVrifyCode("13911788783", "阿亮"+content, success);
-		//sendRegisterVrifyCode("18810545732", "欣欣"+content, success);
+		sendRegisterVrifyCode("13911788783", "阿亮"+content, success);
+		sendRegisterVrifyCode("18810545732", "欣欣"+content, success);
 	}
 	
 	private void sendRegisterVrifyCode(String mobile, String codeNumber, boolean success) throws Exception {
