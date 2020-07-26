@@ -11,6 +11,7 @@ import java.util.TreeMap;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -21,6 +22,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.params.CoreConnectionPNames;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 
@@ -110,6 +112,13 @@ public class HttpClientService {
 			 * 创建一个httpclient对象
 			 */
 			client = HttpClients.createDefault();
+			
+			RequestConfig defaultRequestConfig = RequestConfig.custom()
+					.setConnectTimeout(5000) //lian jie chao shi shi jian
+				    .setSocketTimeout(10000) // shu ju fanhui shijian
+				    .setConnectionRequestTimeout(5000)
+				    .build();
+			
 			/**
 			 * 创建一个post对象
 			 */
@@ -130,6 +139,8 @@ public class HttpClientService {
 			 * 设置请求的报文头部的编码
 			 */
 			post.setHeader(new BasicHeader("Accept", "text/plain;charset=utf-8"));
+			
+			post.setConfig(defaultRequestConfig);
 			/**
 			 * 执行post请求
 			 */
@@ -158,8 +169,13 @@ public class HttpClientService {
 		} catch (Exception e) {
 			LOGGER.error("HttpClientService-line Exception： " + e.getMessage());
 		} finally {
-			response.close();
-			client.close();
+			if (response != null) {
+				response.close();
+			}
+			
+			if (client != null) {
+				client.close();
+			}
 		}
 		return null;
 	}
