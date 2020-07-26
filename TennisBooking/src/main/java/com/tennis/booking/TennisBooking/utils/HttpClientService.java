@@ -114,8 +114,8 @@ public class HttpClientService {
 			client = HttpClients.createDefault();
 			
 			RequestConfig defaultRequestConfig = RequestConfig.custom()
-					.setConnectTimeout(5000) //lian jie chao shi shi jian
-				    .setSocketTimeout(10000) // shu ju fanhui shijian
+					.setConnectTimeout(30000) //lian jie chao shi shi jian
+				    .setSocketTimeout(20000) // shu ju fanhui shijian
 				    .setConnectionRequestTimeout(5000)
 				    .build();
 			
