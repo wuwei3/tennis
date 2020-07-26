@@ -41,23 +41,14 @@ public class ScheduleTask {
 	public void setStatusToFinished() throws Exception {
 		log.info("kai shi222");
 		
-		//String zhousan = getYuDingDate();
+		String threedays = get3DayLater();		
+		xunHuanYuding(threedays);
 		
-//		xunHuanYuding(zhousan);
-		
-//		String dingdan = suoDan(zhousan);
-//		
-//		if (dingdan != null && !"".equals(dingdan)) {
-//			geiqian(dingdan);
-//		} else {
-//			log.error("xia dan shi shibai de!!!!!!!!!!!");
+//		String threedays = get3DayLater();
+//		String[] userids = {"13397", "15837"};
+//		for (String userid: userids) {
+//			new QiangThread(userid, threedays, "19", "20").start();
 //		}
-		
-		String threedays = get3DayLater();
-		String[] userids = {"13397", "15837"};
-		for (String userid: userids) {
-			new QiangThread(userid, threedays, "19", "20").start();
-		}
 	}
 	
 	private String get3DayLater() throws Exception{
@@ -70,53 +61,39 @@ public class ScheduleTask {
 		return three_days_after;
 	}
 	
-	
-	private String getYuDingDate() throws Exception{
-		Date d = new Date();
-		String date = DateUtil.getDate(DateUtil.datePattern, d);
-		
-		Map<String, String> we = DateUtil.getNextWeek(date);
-		for(Map.Entry<String, String> entry : we.entrySet()){
-		    String mapKey = entry.getKey();
-		    String mapValue = entry.getValue();
-		    System.out.println(mapKey+" : "+mapValue);
-		}
-		
-		String begin = we.get("beginDateNext");
-		String end = we.get("endDateNext");
-		
-		String[] sa = DateUtil.getDatesBetweenStartEnd(begin, end);
-		
-		String zhousan = sa[2];
-		
-		log.info("yuding date " + zhousan);
-		
-		return zhousan;
-	}
-	
 	public void xunHuanYuding(String date) throws Exception{
 		log.info("xun huan yu ding kaishi");
 		
 		boolean success = false;
 		
 		String dingdanhao = "";
+		String changdi = "";
 		
 		List<QiuChang> qius = QiuChangCons.getQiuChangList();
 		
 		for (QiuChang qiu: qius) {
-			dingdanhao = suoDan(qiu, date);
+			try {
+				dingdanhao = suoDan(qiu, date);
+			} catch (Exception e) {
+				log.error("预定场地 "  + qiu.getParkname() +  " 异常:  " + e.getMessage());
+			}
 			if (dingdanhao != null && !"".equals(dingdanhao)) {
 				success = true;
+				changdi = qiu.getParkname();
 				break;
 			}
 		}
 		
 		if (!success) {
 			log.info("一个场地都没预定成功, ");
-			sendSMS("4444");
+			try {
+				sendSMS("", false, null);
+			} catch (Exception e) {
+				log.error("发送失败短信异常");
+			}
 		} else {
 			if (dingdanhao != null && !"".equals(dingdanhao)) {
-				geiqian(dingdanhao);
+				geiqian(changdi, dingdanhao, date);
 			} else {
 				log.info("ding dan hao bu zhi dao wei shen me diu le");
 			}
@@ -176,7 +153,7 @@ public class ScheduleTask {
 	
 	
 	
-	public void geiqian(String dingdan) throws Exception{
+	public void geiqian(String changdi,String dingdan, String date) throws Exception{
 		String url = "http://tennis.bjofp.cn/TennisCenterInterface/omOrder/payByCard.action";
 
 		Map hashMap = new HashMap();
@@ -203,17 +180,15 @@ public class ScheduleTask {
 			String respMsg = ob.getString("respMsg");
 			
 			if (code == null || code != 1001) {
-				log.error("gei qian shi bai le, msg " + respMsg);
-				sendSMS("5555");
+				log.error(" gei qian shi bai le, msg " + respMsg);
+				sendSMS(",付款失败了", false, null);
 			} else {
 				log.info(" gei qian cheng gong le");
-				sendSMS("6666");
+				sendSMS(changdi + ", 时间  " + date, true, null);
 			}
 		} else {
 			log.info("data is null!!!!");
 		}
-		
-		
 	}
 
 	private String getJson(QiuChang qiu, String date) {
@@ -282,16 +257,50 @@ public class ScheduleTask {
 		}
 	}
 	
-	private void sendRegisterVrifyCode(String mobile, String codeNumber) throws Exception {
+	private void sendRegisterVrifyCode(String mobile, String codeNumber, boolean success) throws Exception {
 		log.info("send verify code " + codeNumber + " to "  + mobile);
-		//SMSSender.SendPost("86", mobile, codeNumber);
+		SMSSender.SendPost("86", mobile, codeNumber, success);
 	}
 	
-	private void sendSMS(String code) throws Exception {
-		sendRegisterVrifyCode("13718656535", code);
-		sendRegisterVrifyCode("18810545732", code);
-		sendRegisterVrifyCode("13911788783", code);
-		sendRegisterVrifyCode("13810010934", code);
+	private void sendSMS(String content, boolean success, String date) throws Exception {
+//		Date d = DateUtil.convertStringToDate(DateUtil.datePattern, date);
+//		String zhouji = DateUtil.getWeekZhCN(d);
+		
+		//if ("13397".equals(userid)) {
+			//sendRegisterVrifyCode("17710871133", "辛教练"+content, success);
+		//}
+		
+//		if ("15837".equals(userid)) {
+//			sendRegisterVrifyCode("15321336833", "陶教练"+content, success);
+//		}
+		
+		sendRegisterVrifyCode("13810010934", "娜娜"+content, success);
+		sendRegisterVrifyCode("13718656535", "伟伟"+content, success);
+		sendRegisterVrifyCode("13911788783", "阿亮"+content, success);
+		sendRegisterVrifyCode("18810545732", "欣欣"+content, success);
+	}
+	
+	private String getYuDingDate() throws Exception{
+		Date d = new Date();
+		String date = DateUtil.getDate(DateUtil.datePattern, d);
+		
+		Map<String, String> we = DateUtil.getNextWeek(date);
+		for(Map.Entry<String, String> entry : we.entrySet()){
+		    String mapKey = entry.getKey();
+		    String mapValue = entry.getValue();
+		    System.out.println(mapKey+" : "+mapValue);
+		}
+		
+		String begin = we.get("beginDateNext");
+		String end = we.get("endDateNext");
+		
+		String[] sa = DateUtil.getDatesBetweenStartEnd(begin, end);
+		
+		String zhousan = sa[2];
+		
+		log.info("yuding date " + zhousan);
+		
+		return zhousan;
 	}
 
 }
