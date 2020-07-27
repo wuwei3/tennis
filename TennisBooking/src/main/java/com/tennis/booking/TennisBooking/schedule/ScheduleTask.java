@@ -37,7 +37,7 @@ public class ScheduleTask {
 //	
 	
 //	@Scheduled(cron="02 0 0 ? * L")
-	@Scheduled(cron="0 22 11 * * ?")
+	@Scheduled(cron="0 0 0 * * ?")
 	public void setStatusToFinished() throws Exception {
 		log.info("kai shi222");
 		
