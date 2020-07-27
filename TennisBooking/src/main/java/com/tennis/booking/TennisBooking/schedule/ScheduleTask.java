@@ -37,18 +37,22 @@ public class ScheduleTask {
 //	
 	
 //	@Scheduled(cron="02 0 0 ? * L")
-	@Scheduled(cron="0 0 0 * * ?")
+	@Scheduled(cron="0 22 11 * * ?")
 	public void setStatusToFinished() throws Exception {
 		log.info("kai shi222");
 		
-		String threedays = get3DayLater();		
-		xunHuanYuding(threedays);
+//		String threedays = get3DayLater();		
+//		xunHuanYuding(threedays);
 		
-//		String threedays = get3DayLater();
-//		String[] userids = {"13397", "15837"};
-//		for (String userid: userids) {
-//			new QiangThread(userid, threedays, "19", "20").start();
-//		}
+		String threedays = get3DayLater();
+		//String[] userids = {"13397", "15837"};
+		String[] userids = {"13397"};
+		List<QiuChang> qius = QiuChangCons.getQiuChangList();
+		for (String userid: userids) {
+			for (QiuChang qiu: qius) {
+				new QiangThread(userid, threedays, "19", "20", qiu).start();
+			}
+		}
 	}
 	
 	private String get3DayLater() throws Exception{
@@ -274,10 +278,10 @@ public class ScheduleTask {
 //			sendRegisterVrifyCode("15321336833", "陶教练"+content, success);
 //		}
 		
-		sendRegisterVrifyCode("13810010934", "娜娜"+content, success);
-		sendRegisterVrifyCode("13718656535", "伟伟"+content, success);
-		sendRegisterVrifyCode("13911788783", "阿亮"+content, success);
-		sendRegisterVrifyCode("18810545732", "欣欣"+content, success);
+//		sendRegisterVrifyCode("13810010934", "娜娜"+content, success);
+//		sendRegisterVrifyCode("13718656535", "伟伟"+content, success);
+//		sendRegisterVrifyCode("13911788783", "阿亮"+content, success);
+//		sendRegisterVrifyCode("18810545732", "欣欣"+content, success);
 	}
 	
 	private String getYuDingDate() throws Exception{

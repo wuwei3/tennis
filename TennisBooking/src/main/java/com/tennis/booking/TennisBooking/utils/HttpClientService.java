@@ -247,7 +247,7 @@ public class HttpClientService {
 	}
 	
 	public static void main(String[] args) throws Exception{
-        String url = "http://tennis.bjofp.cn/TennisCenterInterface/pmPark/getParkShowByParam.action";
+        String url = "http://47.92.141.158/TennisCenterInterface/pmPark/getParkShowByParam.action";
         
         Map hashMap = new HashMap();
 		//hashMap.put("version_code", "3.0");

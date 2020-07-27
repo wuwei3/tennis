@@ -211,15 +211,15 @@ public class QiuChangCons {
 		list.add(qiu);
 		
 		
-		qiu = new QiuChang();
-		qiu.setParkname("G2");
-		qiu.setParkid("39");
-		list.add(qiu);
-		
-		qiu = new QiuChang();
-		qiu.setParkname("G6");
-		qiu.setParkid("63");
-		list.add(qiu);
+//		qiu = new QiuChang();
+//		qiu.setParkname("G2");
+//		qiu.setParkid("39");
+//		list.add(qiu);
+//		
+//		qiu = new QiuChang();
+//		qiu.setParkname("G6");
+//		qiu.setParkid("63");
+//		list.add(qiu);
 		
 		
 		return list;

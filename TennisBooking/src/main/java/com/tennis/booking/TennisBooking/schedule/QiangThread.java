@@ -10,10 +10,20 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.http.NameValuePair;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.tennis.booking.TennisBooking.utils.ConstantUtil;
 import com.tennis.booking.TennisBooking.utils.DateUtil;
 import com.tennis.booking.TennisBooking.utils.HttpClientService;
 import com.tennis.booking.TennisBooking.utils.SMSSender;
@@ -29,17 +39,20 @@ public class QiangThread extends Thread{
 	private String beginTime1;
 	
 	private String beginTime2;
+	
+	private QiuChang qiu;
 
-	public QiangThread(String userid, String date, String beginTime1, String beginTime2) {
+	public QiangThread(String userid, String date, String beginTime1, String beginTime2, QiuChang qiu) {
 		this.userid = userid;
 		this.date = date;
 		this.beginTime2 = beginTime2;
 		this.beginTime1 = beginTime1;
+		this.qiu = qiu;
 	}
 	
 	@Override
 	public void run(){
-		log.info(userid + " 开始抢场地   ，时间 " + date);
+		//log.info(userid + " 开始抢场地   ，时间 " + date);
 		
 		xunHuanYuding(date);
 		
@@ -47,16 +60,16 @@ public class QiangThread extends Thread{
 	
 	
 	public void xunHuanYuding(String date){
-		log.info(userid + " xun huan yu ding kaishi");
+		//log.info(userid + " xun huan yu ding kaishi");
 		
 		boolean success = false;
 		
 		String dingdanhao = "";
 		String changdi = "";
 		
-		List<QiuChang> qius = QiuChangCons.getQiuChangList();
+		//List<QiuChang> qius = QiuChangCons.getQiuChangList();
 		
-		for (QiuChang qiu: qius) {
+		//for (QiuChang qiu: qius) {
 			try {
 				dingdanhao = suoDan(qiu, date);
 			} catch (Exception e) {
@@ -65,17 +78,17 @@ public class QiangThread extends Thread{
 			if (dingdanhao != null && !"".equals(dingdanhao)) {
 				success = true;
 				changdi = qiu.getParkname();
-				break;
+				//break;
 			}
-		}
+		//}
 		
 		if (!success) {
-			log.info(userid + " 一个场地都没预定成功, ");
-			try {
-				sendSMS("", false);
-			} catch (Exception e) {
-				log.error("发送失败短信异常");
-			}
+//			log.info(userid + " 一个场地都没预定成功, ");
+//			try {
+//				sendSMS("", false);
+//			} catch (Exception e) {
+//				log.error("发送失败短信异常");
+//			}
 		} else {
 			if (dingdanhao != null && !"".equals(dingdanhao)) {
 				try {
@@ -91,7 +104,7 @@ public class QiangThread extends Thread{
 	}
 
 	public String suoDan(QiuChang qiu, String date) throws Exception{
-		String url = "http://tennis.bjofp.cn/TennisCenterInterface/pmPark/addParkOrder.action";
+		String url = "http://47.92.141.158/TennisCenterInterface/pmPark/addParkOrder.action";
 
 		String parkList = getJson(qiu, date);
 		
@@ -109,12 +122,12 @@ public class QiangThread extends Thread{
 		Object[] values = new Object[] {userid, parkList, "0", "app", sign, timeStamp };
 
 		List<NameValuePair> paramsList = HttpClientService.getParams(params, values);
-		Object result = HttpClientService.sendPost(url, paramsList);
+		Object result = sendPost(url, paramsList);
 
 		String dingdan = "";
 		
 		if (result != null) {
-			log.info(userid + "  changdi " + qiu.getParkname() + " xia dan data " + JSONObject.toJSONString(result));
+			//log.info(userid + "  changdi " + qiu.getParkname() + " xia dan data " + JSONObject.toJSONString(result));
 			
 			JSON json = (JSON)JSONObject.toJSON(result);
 			JSONObject ob = (JSONObject)JSONObject.toJSON(json);
@@ -143,7 +156,7 @@ public class QiangThread extends Thread{
 	
 	
 	public void geiqian(String changdi, String dingdan) throws Exception{
-		String url = "http://tennis.bjofp.cn/TennisCenterInterface/omOrder/payByCard.action";
+		String url = "http://47.92.141.158/TennisCenterInterface/omOrder/payByCard.action";
 
 		Map hashMap = new HashMap();
 		hashMap.put("userid", userid);
@@ -157,7 +170,7 @@ public class QiangThread extends Thread{
 		Object[] values = new Object[] {userid, dingdan, sign, timeStamp};
 
 		List<NameValuePair> paramsList = HttpClientService.getParams(params, values);
-		Object result = HttpClientService.sendPost(url, paramsList);
+		Object result = sendPost(url, paramsList);
 
 		if (result != null) {
 			log.info("fu kuan data " + result.toString());
@@ -248,25 +261,103 @@ public class QiangThread extends Thread{
 		}
 	}
 	
+	public Object sendPost(String url, List<NameValuePair> nameValuePairList) throws Exception {
+		JSONObject jsonObject = null;
+		CloseableHttpClient client = null;
+		CloseableHttpResponse response = null;
+		try {
+			/**
+			 * 创建一个httpclient对象
+			 */
+			client = HttpClients.createDefault();
+			
+//			RequestConfig defaultRequestConfig = RequestConfig.custom()
+//					.setConnectTimeout(30000) //lian jie chao shi shi jian
+//				    .setSocketTimeout(20000) // shu ju fanhui shijian
+//				    .setConnectionRequestTimeout(5000)
+//				    .build();
+			
+			/**
+			 * 创建一个post对象
+			 */
+			HttpPost post = new HttpPost(url);
+			/**
+			 * 包装成一个Entity对象
+			 */
+			StringEntity entity = new UrlEncodedFormEntity(nameValuePairList, "UTF-8");
+			/**
+			 * 设置请求的内容
+			 */
+			post.setEntity(entity);
+			/**
+			 * 设置请求的报文头部的编码
+			 */
+			post.setHeader(new BasicHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-8"));
+			/**
+			 * 设置请求的报文头部的编码
+			 */
+			post.setHeader(new BasicHeader("Accept", "text/plain;charset=utf-8"));
+			
+//			post.setConfig(defaultRequestConfig);
+			/**
+			 * 执行post请求
+			 */
+			response = client.execute(post);
+			/**
+			 * 获取响应码
+			 */
+			int statusCode = response.getStatusLine().getStatusCode();
+			if (ConstantUtil.SUCCESS_CODE == statusCode) {
+				/**
+				 * 通过EntityUitls获取返回内容
+				 */
+				String result = EntityUtils.toString(response.getEntity(), "UTF-8");
+				/**
+				 * 转换成json,根据合法性返回json或者字符串
+				 */
+				try {
+					jsonObject = JSONObject.parseObject(result);
+					return jsonObject;
+				} catch (Exception e) {
+					return result;
+				}
+			} else {
+				log.error("HttpClientService-line POST请求失败！");
+			}
+		} catch (Exception e) {
+			log.error("HttpClientService-line Exception： " + e.getMessage());
+		} finally {
+			if (response != null) {
+				response.close();
+			}
+			
+			if (client != null) {
+				client.close();
+			}
+		}
+		return null;
+	}
+	
 	
 	private void sendSMS(String content, boolean success) throws Exception {
 		Date d = DateUtil.convertStringToDate(DateUtil.datePattern, date);
 		String zhouji = DateUtil.getWeekZhCN(d);
 		
-		if ("13397".equals(userid)) {
-			sendRegisterVrifyCode("17710871133", "辛教练"+content, success);
-	        if ("Wed".equals(zhouji)) {
-				sendRegisterVrifyCode("13810010934", "娜娜"+content, success);
-				sendRegisterVrifyCode("13718656535", "伟伟"+content, success);
-			}
-		}
+//		if ("13397".equals(userid)) {
+//			sendRegisterVrifyCode("17710871133", "辛教练"+content, success);
+//	        if ("Wed".equals(zhouji)) {
+//				
+//			}
+//		}
+//		
+//		if ("15837".equals(userid)) {
+//			sendRegisterVrifyCode("15321336833", "陶教练"+content, success);
+//		}
 		
-		if ("15837".equals(userid)) {
-			sendRegisterVrifyCode("15321336833", "陶教练"+content, success);
-		}
-		
-		sendRegisterVrifyCode("13911788783", "阿亮"+content, success);
-		sendRegisterVrifyCode("18810545732", "欣欣"+content, success);
+		//sendRegisterVrifyCode("13810010934", "娜娜"+content, success);
+		//sendRegisterVrifyCode("13718656535", "伟伟"+content, success);
+		//sendRegisterVrifyCode("13911788783", "阿亮"+content, success);
+		//sendRegisterVrifyCode("18810545732", "欣欣"+content, success);
 	}
 	
 	private void sendRegisterVrifyCode(String mobile, String codeNumber, boolean success) throws Exception {

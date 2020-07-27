@@ -10,5 +10,7 @@ public class ConstantUtil {
 	public static final String SMS_URL = "http://api2.santo.cc/submit";
 
 	public static final String SMS_COMMAND = "MT_REQUEST";
+	
+	public static final int SUCCESS_CODE = 200;
 
 }
