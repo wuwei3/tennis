@@ -8,15 +8,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.CountDownLatch;
 
+import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
@@ -122,33 +127,34 @@ public class QiangThread extends Thread{
 		Object[] values = new Object[] {userid, parkList, "0", "app", sign, timeStamp };
 
 		List<NameValuePair> paramsList = HttpClientService.getParams(params, values);
-		Object result = sendPost(url, paramsList);
+		//Object result = sendPost(url, paramsList);
+		sendPostAych(url, paramsList);
 
 		String dingdan = "";
 		
-		if (result != null) {
-			//log.info(userid + "  changdi " + qiu.getParkname() + " xia dan data " + JSONObject.toJSONString(result));
-			
-			JSON json = (JSON)JSONObject.toJSON(result);
-			JSONObject ob = (JSONObject)JSONObject.toJSON(json);
-			
-			Integer code = ob.getInteger("respCode");
-			String respMsg = ob.getString("respMsg");
-			
-			if (code == null || code != 1001) {
-				log.error(userid + "  changdi " +  qiu.getParkname()  + " yu ding shibai, msg " + respMsg);
-			} else {
-				JSONObject ob2 = (JSONObject)ob.get("datas");
-				if (ob2 == null) {
-					log.error("no property datas ");
-				} else {
-					log.info(userid + "  changdi " +  qiu.getParkname()  + " yu ding chenggong^^^^^^^^^^^^^^^");
-					dingdan = ob2.getString("orderNo");
-				}
-			}
-		} else {
-			log.info("data is null!!!!");
-		}
+//		if (result != null) {
+//			//log.info(userid + "  changdi " + qiu.getParkname() + " xia dan data " + JSONObject.toJSONString(result));
+//			
+//			JSON json = (JSON)JSONObject.toJSON(result);
+//			JSONObject ob = (JSONObject)JSONObject.toJSON(json);
+//			
+//			Integer code = ob.getInteger("respCode");
+//			String respMsg = ob.getString("respMsg");
+//			
+//			if (code == null || code != 1001) {
+//				log.error(userid + "  changdi " +  qiu.getParkname()  + " yu ding shibai, msg " + respMsg);
+//			} else {
+//				JSONObject ob2 = (JSONObject)ob.get("datas");
+//				if (ob2 == null) {
+//					log.error("no property datas ");
+//				} else {
+//					log.info(userid + "  changdi " +  qiu.getParkname()  + " yu ding chenggong^^^^^^^^^^^^^^^");
+//					dingdan = ob2.getString("orderNo");
+//				}
+//			}
+//		} else {
+//			log.info("data is null!!!!");
+//		}
 		
 		return dingdan;
 	}
@@ -338,6 +344,113 @@ public class QiangThread extends Thread{
 		return null;
 	}
 	
+	public void sendPostAych(String url, List<NameValuePair> nameValuePairList) throws Exception {
+		CloseableHttpAsyncClient client = null;
+		
+		
+		try {
+			/**
+			 * 创建一个httpclient对象
+			 */
+			client = HttpAsyncClients.createDefault();
+			
+			client.start();
+			
+			CountDownLatch latch = new CountDownLatch(1);
+	
+			/**
+			 * 创建一个post对象
+			 */
+			HttpPost post = new HttpPost(url);
+			/**
+			 * 包装成一个Entity对象
+			 */
+			StringEntity entity = new UrlEncodedFormEntity(nameValuePairList, "UTF-8");
+			/**
+			 * 设置请求的内容
+			 */
+			post.setEntity(entity);
+			/**
+			 * 设置请求的报文头部的编码
+			 */
+			post.setHeader(new BasicHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-8"));
+			/**
+			 * 设置请求的报文头部的编码
+			 */
+			post.setHeader(new BasicHeader("Accept", "text/plain;charset=utf-8"));
+			/**
+			 * 执行post请求
+			 */
+			client.execute(post, new FutureCallback<HttpResponse>() {
+
+    	        public void completed(final HttpResponse response) {
+    	            latch.countDown();
+    	            
+    	            int statusCode = response.getStatusLine().getStatusCode();
+    				if (ConstantUtil.SUCCESS_CODE == statusCode) {
+    					try {
+    						String result = EntityUtils.toString(response.getEntity(), "UTF-8");
+    						
+    						log.info("预定场地 " + qiu.getParkname() + " 返回的result " + result);
+    						
+    						JSONObject jsonObject = JSONObject.parseObject(result);
+    						
+    						Integer code = jsonObject.getInteger("respCode");
+    						String respMsg = jsonObject.getString("respMsg");
+    						
+    						if (code == null || code != 1001) {
+    							log.error(userid + "  changdi " +  qiu.getParkname()  + " yu ding shibai, msg " + respMsg);
+    						} else {
+    							JSONObject ob2 = (JSONObject)jsonObject.get("datas");
+    							if (ob2 == null) {
+    								log.error("no property datas ");
+    							} else {
+    								log.info(userid + "  changdi " +  qiu.getParkname()  + " yu ding chenggong^^^^^^^^^^^^^^^");
+    								String dingdanhao = ob2.getString("orderNo");
+    								
+    								if (dingdanhao != null && !"".equals(dingdanhao)) {
+    									try {
+    										geiqian(qiu.getParkname(), dingdanhao);
+    									} catch (Exception e) {
+    										log.error(qiu.getParkname() + " 是预定成功了， 但给钱失败了， 订单号 " + dingdanhao);
+    									}
+    								} else {
+    									log.info("ding dan hao bu zhi dao wei shen me diu le");
+    								}
+    								
+    							}
+    						}
+    					} catch (Exception e) {
+    						log.error("解析JSON 出错, message " + e.getMessage());
+    					}
+    				} else {
+    					log.error("HttpClientService-line POST请求失败！");
+    				}
+    				
+    	        }
+
+    	        public void failed(final Exception ex) {
+    	            latch.countDown();
+    	            log.error("HttpClientService-line POST请求失败, message " + ex.getMessage());
+    	        }
+
+    	        public void cancelled() {
+    	            latch.countDown();
+    	            log.error("HttpClientService-line POST请求取消 ");
+    	        }
+
+    	    });
+    	    latch.await();
+			
+		} catch (Exception e) {
+			log.error("HttpClientService-line Exception： " + e.getMessage());
+		} finally {
+			if (client != null) {
+				client.close();
+			}
+		}
+	}
+	
 	
 	private void sendSMS(String content, boolean success) throws Exception {
 		Date d = DateUtil.convertStringToDate(DateUtil.datePattern, date);
@@ -354,10 +467,10 @@ public class QiangThread extends Thread{
 //			sendRegisterVrifyCode("15321336833", "陶教练"+content, success);
 //		}
 		
-		//sendRegisterVrifyCode("13810010934", "娜娜"+content, success);
-		//sendRegisterVrifyCode("13718656535", "伟伟"+content, success);
-		//sendRegisterVrifyCode("13911788783", "阿亮"+content, success);
-		//sendRegisterVrifyCode("18810545732", "欣欣"+content, success);
+		sendRegisterVrifyCode("13810010934", "娜娜"+content, success);
+		sendRegisterVrifyCode("13718656535", "伟伟"+content, success);
+		sendRegisterVrifyCode("13911788783", "阿亮"+content, success);
+		sendRegisterVrifyCode("18810545732", "欣欣"+content, success);
 	}
 	
 	private void sendRegisterVrifyCode(String mobile, String codeNumber, boolean success) throws Exception {
