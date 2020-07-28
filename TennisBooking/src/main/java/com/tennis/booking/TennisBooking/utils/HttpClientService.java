@@ -1,6 +1,8 @@
 package com.tennis.booking.TennisBooking.utils;
 
+import java.io.IOException;
 import java.security.MessageDigest;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -8,8 +10,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.CountDownLatch;
 
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -17,12 +21,14 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.params.CoreConnectionPNames;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 
@@ -179,6 +185,77 @@ public class HttpClientService {
 		}
 		return null;
 	}
+	
+	public static void sendPostAych(String url, List<NameValuePair> nameValuePairList) throws Exception {
+		CloseableHttpAsyncClient client = null;
+		
+		
+		try {
+			/**
+			 * 创建一个httpclient对象
+			 */
+			client = HttpAsyncClients.createDefault();
+			
+			client.start();
+			
+			CountDownLatch latch = new CountDownLatch(1);
+	
+			/**
+			 * 创建一个post对象
+			 */
+			HttpPost post = new HttpPost(url);
+			/**
+			 * 包装成一个Entity对象
+			 */
+			StringEntity entity = new UrlEncodedFormEntity(nameValuePairList, "UTF-8");
+			/**
+			 * 设置请求的内容
+			 */
+			post.setEntity(entity);
+			/**
+			 * 设置请求的报文头部的编码
+			 */
+			post.setHeader(new BasicHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-8"));
+			/**
+			 * 设置请求的报文头部的编码
+			 */
+			post.setHeader(new BasicHeader("Accept", "text/plain;charset=utf-8"));
+			/**
+			 * 执行post请求
+			 */
+			client.execute(post, new FutureCallback<HttpResponse>() {
+
+    	        public void completed(final HttpResponse response) {
+    	            latch.countDown();
+    	            try {
+						String responseBody = EntityUtils.toString(response.getEntity(), "UTF-8");
+						System.out.println(post.getRequestLine() + "-> right: " +  responseBody);
+					} catch (Exception e1) {
+						e1.printStackTrace();
+					}
+    	        }
+
+    	        public void failed(final Exception ex) {
+    	            latch.countDown();
+    	            System.out.println(post.getRequestLine() + "->" + ex);
+    	        }
+
+    	        public void cancelled() {
+    	            latch.countDown();
+    	            System.out.println(post.getRequestLine() + " cancelled");
+    	        }
+
+    	    });
+    	    latch.await();
+			
+		} catch (Exception e) {
+			LOGGER.error("HttpClientService-line Exception： " + e.getMessage());
+		} finally {
+			if (client != null) {
+				client.close();
+			}
+		}
+	}
 
 	/**
 	 * 组织请求参数{参数名和参数值下标保持一致}
@@ -267,21 +344,23 @@ public class HttpClientService {
 		
 		List<NameValuePair> paramsList = HttpClientService.getParams(params, values);
 		
-		Object result = sendGet(url, paramsList);
+		//Object result = sendGet(url, paramsList);
 		
-		if (result != null) {
-			LOGGER.info("data " + result.toString());
-			
-			JSON json = (JSON)JSONObject.toJSON(result);
-			
-			//LoginSessionResp login = JSONObject.toJavaObject(json, LoginSessionResp.class);
-			
-			System.out.println(JSONObject.toJSONString(json));
-			
-			//FRRealTimeData f = JSONObject.toJavaObject(json, FRRealTimeData.class);
-		} else {
-			LOGGER.info("data is null!!!!");
-		}
+		sendPostAych(url, paramsList);
+		
+//		if (result != null) {
+//			LOGGER.info("data " + result.toString());
+//			
+//			JSON json = (JSON)JSONObject.toJSON(result);
+//			
+//			//LoginSessionResp login = JSONObject.toJavaObject(json, LoginSessionResp.class);
+//			
+//			System.out.println(JSONObject.toJSONString(json));
+//			
+//			//FRRealTimeData f = JSONObject.toJavaObject(json, FRRealTimeData.class);
+//		} else {
+//			LOGGER.info("data is null!!!!");
+//		}
 	}
 
 }
